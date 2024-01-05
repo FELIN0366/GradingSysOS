@@ -132,7 +132,7 @@ bool Format();								//文件系统格式化
 bool Install();								//安装文件系统
 bool mkdir(int PIAddr, char name[]);
 bool mkfile(int PIAddr, char name[], char buf[]);
-bool rm(int PIAddr, char name[],int type);
+bool rm(int PIAddr, char name[], int type);
 bool addfile(inode fileinode, int CHIaddr, char buf[]);
 bool writefile(inode fileinode, int CHIaddr, char buf[]);
 bool echo(int PIAddr, char name[], int type, char* buf);
@@ -142,7 +142,7 @@ void gotoRoot();
 void ls(char str[]);
 
 bool cat(int PIAddr, char name[]);
-bool chown(int PIAddr, char* pmode, char name[], char group[]);
+bool chown(int PIAddr, char* filename, char name[], char group[]);
 
 //工具函数
 int ialloc();
@@ -151,10 +151,7 @@ int balloc();
 void bfree(int baddr);
 int fcache_alloc();
 void fcfree(int fcaddr);
-void safeFseek(FILE* file, long offset, int origin);
-size_t safeFwrite(const void* ptr, size_t size, size_t count, FILE* file);
-size_t safeFread(void* ptr, size_t size, size_t count, FILE* file);
-bool recursive_rmdir( int CHIAddr, char name[]);
+bool recursive_rmdir(int CHIAddr, char name[]);
 bool recursive_rmfile(int CHIAddr, char name[]);
 
 //用户&用户组函数
@@ -169,7 +166,7 @@ bool groupadd(char* group);
 bool groupdel(char* group);
 bool check(char username[], char passwd[]);	//账号&密码
 bool passwd(char username[], char pwd[]);
-char* is_group(char* group,char *gid);//判断是否在组内
+char* is_group(char* group, char* gid);//判断是否在组内
 //bool check_group(char name[], char s_group[]);//账号&组别
 
 

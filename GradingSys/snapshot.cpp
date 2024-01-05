@@ -20,13 +20,13 @@ bool fullBackup() {
 	struct dirent* ent;
 	if ((dir = opendir("./")) != NULL) {
 		while ((ent = readdir(dir)) != NULL) {
-			if (strncmp(ent->d_name, "Full",4) == 0) {
+			if (strncmp(ent->d_name, "Full", 4) == 0) {
 				string path = "./" + (string)ent->d_name;
 				if (unlink(path.c_str())) {
 					printf("Delete %s\n", ent->d_name);
 				}
 			}
-			else if (strncmp(ent->d_name, "Incre",5) == 0) {
+			else if (strncmp(ent->d_name, "Incre", 5) == 0) {
 				string path = "./" + (string)ent->d_name;
 				if (unlink(path.c_str())) {
 					printf("Delete %s\n", ent->d_name);
@@ -135,11 +135,11 @@ bool incrementalBackup() {
 
 	//读出上一次增量转储后做修改的inode（区间改变）
 	char new_modify_inodeBitmap[INODE_NUM];
-	memset(new_modify_inodeBitmap,0, sizeof(new_modify_inodeBitmap));
+	memset(new_modify_inodeBitmap, 0, sizeof(new_modify_inodeBitmap));
 	//对每一个修改过的文件&全部目录在位图中做标记
 	for (int i = 0; i < INODE_NUM; i++) {
 		inode tmp_inode;
-		fseek(fr, Inode_Start_Addr+i*sizeof(inode), SEEK_SET);
+		fseek(fr, Inode_Start_Addr + i * sizeof(inode), SEEK_SET);
 		fread(&tmp_inode, sizeof(inode), 1, fr);
 		if (tmp_inode.file_modified_time > last_backup_time) {
 			new_modify_inodeBitmap[i] = 1;
@@ -166,14 +166,14 @@ bool incrementalBackup() {
 	
 
 	//去每一个被修改的inode里找被对应修改的直接块（区间改变）
-	int Cur_Addr=Backup_Block_Start_Addr;
+	int Cur_Addr = Backup_Block_Start_Addr;
 	for (int i = 0; i < INODE_NUM; i++) {
 		inode tmp_inode;
 		if (new_modify_inodeBitmap[i] == 1) {
 			char tmp[128];
 			memset(tmp, '\0', sizeof(tmp));
 			//读修改过的inode
-			fseek(fr, Inode_Start_Addr+i*INODE_SIZE, SEEK_SET);//?
+			fseek(fr, Inode_Start_Addr + i * INODE_SIZE, SEEK_SET);//?
 			fread(&tmp_inode, sizeof(inode), 1, fr);
 			fflush(fr);
 			//将修改过的inode写入增量备份系统
@@ -218,7 +218,7 @@ bool recovery() {
 		while ((ent = readdir(dir)) != NULL) {
 			printf("%s\t", ent->d_name);
 			printf("\n");
-			if (strncmp(ent->d_name, "Full",4) == 0) {
+			if (strncmp(ent->d_name, "Full", 4) == 0) {
 				printf("%s", ent->d_name);
 				//打开文件
 				if ((bfr = fopen(ent->d_name, "rb")) == NULL) {
@@ -279,7 +279,7 @@ bool recovery() {
 	int incre_backup_count = 0;
 	if ((dir = opendir("./")) != NULL) {
 		while ((ent = readdir(dir)) != NULL) {
-			if (strncmp(ent->d_name, "Incre",5) == 0) {
+			if (strncmp(ent->d_name, "Incre", 5) == 0) {
 				incre_backup_count++;
 				files.push_back(ent->d_name);
 			}

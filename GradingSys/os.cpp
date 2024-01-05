@@ -33,8 +33,8 @@ bool Format() { //ok
 	superblock->s_Inode_Start_Addr = Inode_Start_Addr;
 	superblock->s_Block_Start_Addr = Block_Start_Addr;
 	superblock->s_FCache_Start_Addr = FCache_Start_Addr;
-	safeFseek(fw, Superblock_Start_Addr, SEEK_SET);
-	safeFwrite(superblock, sizeof(SuperBlock), 1, fw);
+	fseek(fw, Superblock_Start_Addr, SEEK_SET);
+	fwrite(superblock, sizeof(SuperBlock), 1, fw);
 
 	memset(inode_bitmap, 0, sizeof(inode_bitmap));
 	fseek(fw, InodeBitmap_Start_Addr, SEEK_SET);
@@ -50,10 +50,14 @@ bool Format() { //ok
 	//inode和block板块暂时不需要内容
 	fflush(fw);//将上面内容放入fw中
 
+	memset(fcache_bitmap, 0, sizeof(fcache_bitmap));
+	fseek(fw, FCacheBitmap_Start_Addr, SEEK_SET);
+	fwrite(fcache_bitmap, sizeof(fcache_bitmap), 1, fw);
+
 	//创建根目录
 	int iaddr = ialloc();
 	int baddr = balloc();
-	if (iaddr == -1 || baddr==-1) {
+	if (iaddr == -1 || baddr == -1) {
 		return false;
 	}
 
@@ -61,8 +65,8 @@ bool Format() { //ok
 	ino.inode_id = iaddr;
 	ino.inode_mode = MODE_DIR | DIR_DEF_PERMISSION;
 	ino.inode_file_count = 1; //"."也算
-	strcpy(ino.i_uname , "root");
-	strcpy(ino.i_gname , "root");
+	strcpy(ino.i_uname, "root");
+	strcpy(ino.i_gname, "root");
 	ino.inode_file_size = 1 * BLOCK_SIZE;
 	time(&ino.inode_change_time);
 	time(&ino.dir_change_time);
@@ -76,12 +80,12 @@ bool Format() { //ok
 	fwrite(&ino, sizeof(inode), 1, fw);
 
 	DirItem ditem[DirItem_Size];
-	for (int i = 0; i < DirItem_Size; ++i){
+	for (int i = 0; i < DirItem_Size; ++i) {
 		ditem[i].inodeAddr = -1;
 		strcpy(ditem[i].itemName, "");
 	}
 	ditem[0].inodeAddr = iaddr;
-	strcpy(ditem[0].itemName , ".");
+	strcpy(ditem[0].itemName, ".");
 	fseek(fw, baddr, SEEK_SET);
 	fwrite(ditem, sizeof(ditem), 1, fw);
 
@@ -117,6 +121,7 @@ bool Format() { //ok
 	gotoRoot();
 	return true;
 }
+
 bool Install() {	//安装文件系统 ok
 	fseek(fr, Superblock_Start_Addr, SEEK_SET);
 	fread(superblock, sizeof(superblock), 1, fr);
@@ -133,6 +138,9 @@ bool Install() {	//安装文件系统 ok
 	fflush(fr);
 	return true;
 }
+
+
+
 bool mkdir(int PIAddr, char name[]) {	//目录创建函数(父目录权限:读写执行)
 	//理论上Cur_Dir_Addr是系统分配的，应该是正确的
 	if (strlen(name) > FILE_NAME_MAX_SIZE) {
@@ -155,7 +163,7 @@ bool mkdir(int PIAddr, char name[]) {	//目录创建函数(父目录权限:读�
 	if (strcmp(Cur_User_Name, parino.i_uname) == 0) {
 		role = 6;
 	}
-	if ((((parino.inode_mode >> role >> 1) & 1 == 0) )&& (strcmp(Cur_User_Name, "root") != 0)) { //可写
+	if ((((parino.inode_mode >> role >> 1) & 1 == 0)) && (strcmp(Cur_User_Name, "root") != 0)) { //可写
 		printf("权限不足，无法新建目录\n");
 		return false;
 	}
@@ -277,7 +285,8 @@ bool mkdir(int PIAddr, char name[]) {	//目录创建函数(父目录权限:读�
 	//backup(count, 0);
 	return true;
 }
-bool mkfile(int PIAddr, char name[],char buf[]) {	//文件创建函数
+
+bool mkfile(int PIAddr, char name[], char buf[]) {	//文件创建函数
 	//理论上Cur_Dir_Addr是系统分配的，应该是正确的
 	if (strlen(name) > FILE_NAME_MAX_SIZE) {
 		printf("文件名称超过最大长度\n");
@@ -391,7 +400,7 @@ bool mkfile(int PIAddr, char name[],char buf[]) {	//文件创建函数
 	chiino.i_indirect_1 = -1;
 	chiino.i_indirect_2 = -1;
 	chiino.i_dirBlock[0] = chibaddr;
-	chiino.inode_file_size =0;
+	chiino.inode_file_size = 0;
 	fseek(fw, chiiaddr, SEEK_SET);
 	fwrite(&chiino, sizeof(inode), 1, fw);
 
@@ -475,7 +484,7 @@ bool recursive_rmdir(int CHIAddr, char name[]) {//删除当前目录(父亲block
 		printf("文件名称超过最大长度\n");
 		return false;
 	}
-	if ((strcmp(name, ".") == 0) || strcmp(name, "..") == 0 ){
+	if ((strcmp(name, ".") == 0) || strcmp(name, "..") == 0) {
 		printf("文件无法删除\n");
 		return false;
 	}
@@ -493,7 +502,7 @@ bool recursive_rmdir(int CHIAddr, char name[]) {//删除当前目录(父亲block
 		mode = 6;
 	}
 	//没有该权限并且不为管理员
-	if ((((ino.inode_mode >> mode >> 1) & 1) == 0) && (strcmp(Cur_Group_Name, "root") != 0)) {//是否可写：2
+	if ((((ino.inode_mode >> mode >> 1) & 1) == 0) || (strcmp(Cur_Group_Name, "root") != 0)) {//是否可写：2
 		printf("没有权限删除该文件夹\n");
 		return false;
 	}
@@ -567,7 +576,7 @@ bool recursive_rmfile(int CHIAddr, char name[]) {	//删除当前文件（父亲i
 		}
 	}
 	ino.inode_file_count = 0;
-	ino.inode_file_size =0;
+	ino.inode_file_size = 0;
 	ifree(CHIAddr);
 	return true;
 }
@@ -586,9 +595,9 @@ bool cat(int PIAddr, char name[]) {	//查看文件内容
 					inode chiino;
 					fseek(fr, ditem[j].inodeAddr, SEEK_SET);
 					fread(&chiino, sizeof(chiino), 1, fr);
-					if(((chiino.inode_mode>>9)&1)==0){//文件
+					if (((chiino.inode_mode >> 9) & 1) == 0) {//文件
 						//读文件内容
-						for (int k = 0; k < 10;++k) {
+						for (int k = 0; k < 10; ++k) {
 							if (chiino.i_dirBlock[k] != -1) {
 								char content[BLOCK_SIZE];
 								fseek(fr, chiino.i_dirBlock[k], SEEK_SET);
@@ -608,8 +617,8 @@ bool cat(int PIAddr, char name[]) {	//查看文件内容
 	
 }
 bool echo(int PIAddr, char name[], int type, char* buf) {	//文件新增or重写or补全
-	if(buf[0]=='"') buf += 1;
-	if(buf[strlen(buf) - 1]=='"')  buf[strlen(buf) - 1] = '\0';
+	if (buf[0] == '"') buf += 1;
+	if (buf[strlen(buf) - 1] == '"')  buf[strlen(buf) - 1] = '\0';
 	if (type == 0) {
 		if (mkfile(PIAddr, name, buf)) {
 			return true;
@@ -677,8 +686,8 @@ bool writefile(inode fileinode, int iaddr, char buf[]) { //文件写入
 			strncpy(temp_file, buf + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
 
-		safeFseek(fw, baddr, SEEK_SET);
-		safeFwrite(temp_file, BLOCK_SIZE, 1, fw);
+		fseek(fw, baddr, SEEK_SET);
+		fwrite(temp_file, BLOCK_SIZE, 1, fw);
 		fileinode.i_dirBlock[i] = baddr;
 	}
 
@@ -697,8 +706,8 @@ bool writefile(inode fileinode, int iaddr, char buf[]) { //文件写入
 				memset(temp_file, '\0', BLOCK_SIZE);
 				strncpy(temp_file, buf + BLOCK_SIZE * (10 + count), BLOCK_SIZE);
 
-				safeFseek(fr, fcache.baddr[i], SEEK_SET);
-				safeFwrite(temp_file, sizeof(temp_file), 1, fw);
+				fseek(fr, fcache.baddr[i], SEEK_SET);
+				fwrite(temp_file, sizeof(temp_file), 1, fw);
 
 				count++;
 				new_block--;
@@ -709,8 +718,8 @@ bool writefile(inode fileinode, int iaddr, char buf[]) { //文件写入
 	fileinode.inode_file_size = strlen(buf);
 	time(&fileinode.inode_change_time);
 	time(&fileinode.file_modified_time);
-	safeFseek(fw, iaddr, SEEK_SET);
-	safeFwrite(&fileinode, sizeof(fileinode), 1, fw);
+	fseek(fw, iaddr, SEEK_SET);
+	fwrite(&fileinode, sizeof(fileinode), 1, fw);
 	return true;
 }
 
@@ -793,11 +802,11 @@ bool cd(int PIAddr, char* name) {//切换目录
 						return true;
 					}
 					if (strcmp(name, "..") == 0) {
-						if (strcmp(Cur_Dir_Name, "/") ==0){
+						if (strcmp(Cur_Dir_Name, "/") == 0) {
 							return true;
 						}
 						//char* p = strrchr(Cur_Dir_Addr, '/'); 跑不了啊
-						char* p = Cur_Dir_Name+strlen(Cur_Dir_Name);
+						char* p = Cur_Dir_Name + strlen(Cur_Dir_Name);
 						while ((*p) != '/')p--;
 						*p = '\0'; //打断它
 						Cur_Dir_Addr = ditem[j].inodeAddr;
@@ -807,7 +816,7 @@ bool cd(int PIAddr, char* name) {//切换目录
 					fseek(fr, ditem[j].inodeAddr, SEEK_SET);
 					fread(&chiino, sizeof(inode), 1, fr);
 					fflush(fr);
-					if ((((chiino.inode_mode >> role) & 1) == 1) ||(strcmp(Cur_Group_Name,"root")==0)){	//是否有执行权限
+					if ((((chiino.inode_mode >> role) & 1) == 1) || (strcmp(Cur_Group_Name, "root") == 0)) {	//是否有执行权限
 						if (strcmp(Cur_Dir_Name, "/") != 0) {
 							strcat(Cur_Dir_Name, "/");
 						}
@@ -823,8 +832,8 @@ bool cd(int PIAddr, char* name) {//切换目录
 	return false;
 }
 void gotoRoot() { //ok
-	Cur_Dir_Addr= Root_Dir_Addr;
-	strcpy(Cur_Dir_Name , "/");
+	Cur_Dir_Addr = Root_Dir_Addr;
+	strcpy(Cur_Dir_Name, "/");
 }
 void ls(char str[]) {//显示当前目录所有文件 ok
 	inode ino;
@@ -841,7 +850,7 @@ void ls(char str[]) {//显示当前目录所有文件 ok
 	if (strcmp(Cur_User_Name, ino.i_uname) == 0) {//owner
 		mode = 6;
 	}
-	if ((((ino.inode_mode >> mode >> 2) & 1 )== 0) &&(strcmp(Cur_User_Name, "root") != 0)) {//是否可读：4
+	if ((((ino.inode_mode >> mode >> 2) & 1) == 0) && (strcmp(Cur_User_Name, "root") != 0)) {//是否可读：4
 		printf("没有权限查看该文件夹\n");
 		return;
 	}
@@ -860,7 +869,7 @@ void ls(char str[]) {//显示当前目录所有文件 ok
 					fread(&tmp, sizeof(inode), 1, fr);
 					fflush(fr);
 
-					if (strcmp(ditem[j].itemName, "") == 0|| (strcmp(ditem[j].itemName, ".") == 0) || (strcmp(ditem[j].itemName, "..") == 0)) {
+					if (strcmp(ditem[j].itemName, "") == 0 || (strcmp(ditem[j].itemName, ".") == 0) || (strcmp(ditem[j].itemName, "..") == 0)) {
 						continue;
 					}
 
@@ -930,7 +939,7 @@ int ialloc() { //分配inode，满了返回-1 ok
 		printf("没有inode空间\n");
 		return -1;
 	}
-	iaddr =Inode_Start_Addr + iaddr * INODE_SIZE;
+	iaddr = Inode_Start_Addr + iaddr * INODE_SIZE;
 	superblock->s_free_INODE_NUM -= 1;
 	fseek(fw, Superblock_Start_Addr, SEEK_SET);
 	fwrite(superblock, sizeof(superblock), 1, fw);
@@ -963,7 +972,7 @@ int balloc() { //分配block，满了返回-1 ok
 	int index = -1;
 	for (int i = 0; i < BLOCK_NUM; i++) {
 		if (block_bitmap[i] == 0) {
-			index= i;
+			index = i;
 			block_bitmap[i] = 1;
 			break;
 		}
@@ -997,7 +1006,46 @@ void bfree(int baddr) {
 	fseek(fw, Superblock_Start_Addr, SEEK_SET);
 	fwrite(superblock, sizeof(superblock), 1, fw);
 }
-
+int fcache_alloc() {
+	//1 cache + 1 ditem
+	int baddr = -1;
+	int index = -1;
+	for (int i = 0; i < FCACHE_NUM; i++) {
+		if (fcache_bitmap[i] == 0) {
+			index = i;
+			fcache_bitmap[i] = 1;
+			break;
+		}
+	}
+	if (index == -1) {
+		printf("没有cache空间\n");
+		return -1;
+	}
+	baddr = FCache_Start_Addr + index * FCACHE_SIZE;
+	superblock->s_free_FCACHE_NUM -= 1;
+	fseek(fw, Superblock_Start_Addr, SEEK_SET);
+	fwrite(superblock, sizeof(superblock), 1, fw);
+	fseek(fw, FCacheBitmap_Start_Addr, SEEK_SET);
+	fwrite(fcache_bitmap, sizeof(fcache_bitmap), 1, fw);
+	return baddr;
+}
+void fcfree(int fcaddr) {
+	if ((fcaddr % FCACHE_SIZE) != 0) {
+		printf("当前cache位置错误\n");
+		return;
+	}
+	int index = (fcaddr - FCache_Start_Addr) / FCACHE_SIZE;
+	if (fcache_bitmap[index] == 0) {
+		printf("未使用当前cache，无需释放\n");
+		return;
+	}
+	fcache_bitmap[index] = 0;
+	fseek(fw, FCacheBitmap_Start_Addr, SEEK_SET);
+	fwrite(fcache_bitmap, sizeof(fcache_bitmap), 1, fw);
+	superblock->s_free_FCACHE_NUM -= 1;
+	fseek(fw, Superblock_Start_Addr, SEEK_SET);
+	fwrite(superblock, sizeof(superblock), 1, fw);
+}
 //****用户&用户组函数****
 void inUsername(char* username)	//输入用户名
 {
@@ -1005,7 +1053,7 @@ void inUsername(char* username)	//输入用户名
 	scanf("%s", username);	//用户名
 }
  
-void inPasswd(char *passwd)	//输入密码
+void inPasswd(char* passwd)	//输入密码
 {
 	printf("password:\n");
 	scanf("%s", passwd);
@@ -1024,7 +1072,7 @@ bool login()	//登陆界面
 	char passwd[100] = { 0 };
 	inUsername(username);	//输入用户名
 	inPasswd(passwd);		//输入用户密码
-    printf("input password: %s, input username: %s\n", passwd, username);
+	//printf("input password: %s, input username: %s\n", passwd, username);
 	if (check(username, passwd)) {			//核对用户名和密码
 
 		isLogin = true;
@@ -1071,8 +1119,8 @@ bool useradd(char username[], char passwd[], char group[]) {	//用户注册
 	chown(Cur_Dir_Addr, username, username, group);
 
 	//获取etc三文件
-	inode etcino,shadowino,passwdino,groupino;
-	int shadowiddr, passwdiddr,groupiddr;
+	inode etcino, shadowino, passwdino, groupino;
+	int shadowiddr, passwdiddr, groupiddr;
 	gotoRoot();
 	cd(Cur_Dir_Addr, "etc");
 	fseek(fr, Cur_Dir_Addr, SEEK_SET);
@@ -1096,7 +1144,7 @@ bool useradd(char username[], char passwd[], char group[]) {	//用户注册
 				}
 				if (strcmp(ditem[j].itemName, "group") == 0) {
 					groupiddr = ditem[j].inodeAddr;
-					fseek(fr,groupiddr, SEEK_SET);
+					fseek(fr, groupiddr, SEEK_SET);
 					fread(&groupino, sizeof(inode), 1, fr);
 				}
 			}
@@ -1107,8 +1155,8 @@ bool useradd(char username[], char passwd[], char group[]) {	//用户注册
 	char buf[BLOCK_SIZE * 10]; //1char:1B
 	char temp[BLOCK_SIZE];
 	char a[10];
-	char *gid= is_group(group,a);
-	if (strcmp(gid,"-1")==0) {
+	char* gid = is_group(group, a);
+	if (strcmp(gid, "-1") == 0) {
 		printf("用户组别不正确，请重新输入");
 		return false;
 	}
@@ -1125,8 +1173,8 @@ bool useradd(char username[], char passwd[], char group[]) {	//用户注册
 		}
 	}
 	//buf[strlen(buf)] = '\0'; (strcat可能会自动添加？）
-	if (strstr(buf, username)!= NULL) {
-		printf("该用户名已存在\n");
+	if (strstr(buf, username) != NULL) {
+		//printf("该用户名已存在\n");
 		return false;
 	}
 	sprintf(buf + strlen(buf), "%s:%d:%d\n", username, nextUID++, g);
@@ -1316,7 +1364,7 @@ bool userdel(char username[]) {	//用户删除
 	p = strstr(buf, username);
 	if ((*(p - 1)) == ':') {	//第一个，后面空格和逗号都要去掉
 		*p = '\0';
-		while (((*p) != '\n')&&((*p)!=',')) { 
+		while (((*p) != '\n') && ((*p) != ',')) {
 			p++;
 		}
 		p++;
@@ -1334,10 +1382,10 @@ bool userdel(char username[]) {	//用户删除
 
 	gotoRoot();
 	cd(Cur_Dir_Addr, "home");
-	rm(Cur_Dir_Addr, username,1);	//找到父目录home即可进入
+	rm(Cur_Dir_Addr, username, 1);	//找到父目录home即可进入
 
 	//恢复现场
-	if ((p=strstr(pro_cur_dir_name, username)) == NULL) { //原路径不包含删除文件夹
+	if ((p = strstr(pro_cur_dir_name, username)) == NULL) { //原路径不包含删除文件夹
 		Cur_Dir_Addr = pro_cur_dir_addr;
 		strcpy(Cur_Dir_Name, pro_cur_dir_name);
 	}
@@ -1419,7 +1467,7 @@ bool check(char username[], char passwd[]) {//核验身份登录&设置 ok
 		p++;
 	}
 	if (strcmp(checkpw, passwd) != 0) {
-        printf("Here!!! checkpw is %s, passwd is %s\n", checkpw, passwd);
+		//printf("Here!!! checkpw is %s, passwd is %s\n", checkpw, passwd);
 		printf("密码不正确，请重新尝试！\n");
 		return false;
 	}
@@ -1436,7 +1484,7 @@ bool check(char username[], char passwd[]) {//核验身份登录&设置 ok
 	}
 	p = strstr(buf, username);
 	int flag;
-	i=flag = 0;
+	i = flag = 0;
 	
 	memset(group, '\0', strlen(group));
 	while ((*p) != '\n') {
@@ -1450,7 +1498,7 @@ bool check(char username[], char passwd[]) {//核验身份登录&设置 ok
 	}
 
 	//成功登录后的设置
-	if(strcmp(group,"0")==0){
+	if (strcmp(group, "0") == 0) {
 		strcpy(Cur_Group_Name, "root");
 	}
 	else if (strcmp(group, "1") == 0) {
@@ -1459,7 +1507,7 @@ bool check(char username[], char passwd[]) {//核验身份登录&设置 ok
 	else if (strcmp(group, "2") == 0) {
 		strcpy(Cur_Group_Name, "student");
 	}
-	strcpy(Cur_User_Name,username);
+	strcpy(Cur_User_Name, username);
 	sprintf(Cur_User_Dir_Name, "/home/%s", username);
 	gotoRoot();
 	cd(Cur_Dir_Addr, "home");
@@ -1503,7 +1551,7 @@ bool chmod(int PIAddr, char name[], char* pmode) {//修改文件or目录权限�
 					if ((pmode[0] >= '0') && (pmode[0] <= '9')) {	//pmode是数字
 						char* endptr;
 						mode = strtol(pmode, &endptr, 8);
-						if (strlen(endptr)!=0) {
+						if (strlen(endptr) != 0) {
 							printf("请使用正确的八进制数字\n");
 							return false;
 						}
@@ -1583,7 +1631,7 @@ bool chmod(int PIAddr, char name[], char* pmode) {//修改文件or目录权限�
 								else {
 									switch (s_user) {
 									case 'u':
-										i_mode = i_mode &~ (1 << symbol << 6);
+										i_mode = i_mode & ~(1 << symbol << 6);
 										break;
 									case 'g':
 										i_mode = i_mode & ~(1 << symbol << 3);
@@ -1683,7 +1731,7 @@ bool chmod(int PIAddr, char name[], char* pmode) {//修改文件or目录权限�
 //}
 bool groupadd(char* group) {
 	//判断权限
-	if (strcmp(Cur_User_Name, "root")!=0) {
+	if (strcmp(Cur_User_Name, "root") != 0) {
 		printf("权限不足，无法增加用户组.\n");
 		return false;
 	}
@@ -1702,7 +1750,7 @@ bool groupadd(char* group) {
 	}
 	
 	//获取group文件
-	inode etcino,groupino;
+	inode etcino, groupino;
 	int groupiddr;
 	gotoRoot();
 	cd(Cur_Dir_Addr, "etc");
@@ -1839,8 +1887,8 @@ bool groupdel(char* group) {
 		char name[20];
 		memset(name, '\0', sizeof(name));
 		char* p = strstr(names, ",");
-		if (p==NULL) {
-			strncpy(name, names,strlen(names)-1);
+		if (p == NULL) {
+			strncpy(name, names, strlen(names) - 1);
 			userdel(name);
 			break;
 		}
@@ -1859,7 +1907,7 @@ bool groupdel(char* group) {
 	strcpy(Cur_Dir_Name, pro_cur_dir_name);
 	return true;
 }
-char* is_group(char* group,char *gid) {
+char* is_group(char* group, char* gid) {
 	//保护现场并更改信息
 	int pro_cur_dir_addr = Cur_Dir_Addr;
 	char pro_cur_dir_name[310], pro_cur_user_name[110], pro_cur_group_name[110], pro_cur_user_dir_name[310];
@@ -1932,7 +1980,7 @@ char* is_group(char* group,char *gid) {
 	strcpy(Cur_Dir_Name, pro_cur_dir_name);
 	return gid;
 }
-bool chown(int PIAddr,char* filename, char name[], char group[]) {//修改文件所属用户和用户组
+bool chown(int PIAddr, char* filename, char name[], char group[]) {//修改文件所属用户和用户组
 	//判断
 	if (strlen(filename) > FILENAME_MAX) {
 		printf("文件名称超过最大长度\n");
@@ -1983,10 +2031,10 @@ bool chown(int PIAddr,char* filename, char name[], char group[]) {//修改文件
 			}
 		}
 	}
-	printf("没有找到该文件，无法修改权限\n");
+	//printf("没有找到该文件，无法修改权限\n");
 	return false;
 }
-bool passwd(char username[],char pwd[]) {
+bool passwd(char username[], char pwd[]) {
 
 	//设定修改用户名称
 	char uname[100];

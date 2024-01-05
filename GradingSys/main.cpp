@@ -9,7 +9,7 @@
 #include<dirent.h>
 
 
-const int Superblock_Start_Addr=0;     //44B:1block
+const int Superblock_Start_Addr = 0;     //44B:1block
 const int InodeBitmap_Start_Addr = 1 * BLOCK_SIZE; //1024B:2block
 const int BlockBitmap_Start_Addr = InodeBitmap_Start_Addr + 2 * BLOCK_SIZE;//10240B:20block
 const int Inode_Start_Addr = BlockBitmap_Start_Addr + 20 * BLOCK_SIZE;//120<128: 换算成x个block
@@ -45,6 +45,7 @@ SuperBlock* superblock = new SuperBlock;	//超级块指针
 bool inode_bitmap[INODE_NUM];				//inode位图
 bool block_bitmap[BLOCK_NUM];				//磁盘块位图
 bool modified_inode_bitmap[INODE_NUM];      //增量转储 0:未被修改；1:已修改
+bool fcache_bitmap[FCACHE_NUM];
 
 FILE* bfw;
 FILE* bfr;
@@ -149,7 +150,7 @@ int main()
     }
     DIR* dir;
     struct dirent* ent;
-    if ((dir = opendir("./)) != NULL) {
+    if ((dir = opendir("./")) != NULL) {
         while ((ent = readdir(dir)) != NULL) {
             if (strcmp(ent->d_name, "Full") == 0) {
                 string path = "./" + (string)ent->d_name;
@@ -179,6 +180,7 @@ int main()
             //scanf("%s",str);
             gets(str);
             cmd(str);
+            printf("\n");
         }
         else {
             printf("欢迎来到GradingSysOS，请先登录\n");
