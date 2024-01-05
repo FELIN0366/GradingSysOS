@@ -22,8 +22,8 @@ void cmd(char cmd_str[]) {
 			tea_help();
 		}
 		else {
-			help();
-		}
+		help();
+	}
 	}
 	else if (strcmp(com1, "ls") == 0) {
 		sscanf(cmd_str, "%s%s", com1, com2);
@@ -36,7 +36,7 @@ void cmd(char cmd_str[]) {
 	else if (strcmp(com1, "gotoRoot") == 0) {
 		gotoRoot();
 	}
-	else if (strcmp(com1, "mkdir") == 0) {
+	else if (strcmp(com1, "mkdir") == 0) {	
 		sscanf(cmd_str, "%s%s", com1, com2);
 		mkdir_func(Cur_Dir_Addr, com2);
 	}
@@ -101,11 +101,12 @@ void cmd(char cmd_str[]) {
 	else if (strcmp(com1, "logout") == 0) {
 		logout();
 	}
+	//澶囦唤绯荤粺&鎭㈠绯荤粺
 	else if (strcmp(com1, "exit") == 0) {
 		cout << "exit OS. BYE BYE!" << endl;
 		exit(0);
 	}
-
+	
 
 	if (strcmp(Cur_Group_Name, "root") == 0) {
 		if (strcmp(com1, "batchadd") == 0) {
@@ -122,7 +123,7 @@ void cmd(char cmd_str[]) {
 			incrementalBackup();
 		}
 	}
-
+	
 	//teacher缁勭壒鏈�
 	if (strcmp(Cur_Group_Name, "teacher") == 0) {
 		if (strcmp(com1, "publish_task") == 0) {
@@ -134,8 +135,8 @@ void cmd(char cmd_str[]) {
 			judge_hw(STUDENT_COURSE_LIST, com2, com3);
 		}
 	}
-
-	//student缁勭壒鏈�
+  
+  //student缁勭壒鏈�
 	if (strcmp(Cur_Group_Name, "student") == 0) {
 		if (strcmp(com1, "check_hw_content") == 0) //check desription
 		{
@@ -219,8 +220,8 @@ void help() {
 bool cd_func(int CurAddr, char* str) {
 	int pro_cur_dir_addr = Cur_Dir_Addr;
 	char pro_cur_dir_name[310];
-	memset(pro_cur_dir_name, '\0', 310);
-	strcpy(pro_cur_dir_name, Cur_Dir_Name);
+    memset(pro_cur_dir_name, '\0', 310);
+    strcpy(pro_cur_dir_name, Cur_Dir_Name);
 	int flag = 1;
 	if (strcmp(str, "/") == 0) {
 		gotoRoot();
@@ -325,10 +326,10 @@ bool touch_func(int CurAddr, char* str, char* buf) {
 		strcpy(name, p);
 		*p = '\0';
 		if (cd_func(CurAddr, str))
-		{
+        {
 			if (mkfile(Cur_Dir_Addr, name, buf)) {
-				return true;
-			}
+                return true;
+            }
 		}
 		return false;
 	}

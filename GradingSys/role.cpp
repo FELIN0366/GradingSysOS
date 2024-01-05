@@ -1,11 +1,15 @@
 #include<iostream>
 #include<cstdio>
 #include<cstring>
+#include<cstdlib>
+#include<stdio.h>
 #include<fstream>
 #include"function.h"
 #include"os.h"
 #include"role.h"
+
 using namespace std;
+
 
 bool add_users(char* namelist) {
 	if (strcmp(Cur_Group_Name, "root") != 0) {
@@ -83,6 +87,7 @@ bool publish_task(char* lesson, char* filename) {//filename: XXX.txt
 	char new_buff[1024];
 	memset(new_buff, '\0', 1024);
 	sprintf(new_buff, "../../../%s.txt", filename);
+	//sprintf(new_buff, "/Users/sprungissue/CLionProjects/GradingSys/GradingSys/%s.txt", filename);
 	ifstream fin(new_buff);
 	if (!fin.is_open()) {
 		cout << "File Open Failure!" << endl;
@@ -363,5 +368,6 @@ bool submit_assignment(char* student_name, char* lesson, char* filename)
 	Cur_Dir_Addr = pro_cur_dir_addr;
 	strcpy(Cur_Dir_Name, pro_cur_dir_name);
 	char ms[] = "Successfully submit your HW!\n";
+	send(client.client_sock, ms, strlen(ms), 0);
 	return true;
 }

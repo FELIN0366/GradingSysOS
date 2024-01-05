@@ -158,7 +158,7 @@ bool recursive_rmfile(int CHIAddr, char name[]);
 void inUsername(char* username);							//输入用户名
 void inPasswd(char* passwd);
 void ingroup(char* group);
-bool login();
+bool login();	
 bool logout();
 bool useradd(char username[], char passwd[], char group[]);
 bool userdel(char username[]);

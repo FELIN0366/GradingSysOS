@@ -170,7 +170,7 @@ int main()
             memset(str, '\0', sizeof(str));
             char* p;
             count++;
-
+            
             if ((p = strstr(Cur_Dir_Name, Cur_User_Dir_Name)) == NULL) {	//当前是否在用户目录下
                 printf("[%s@%s %s]# ", Cur_Host_Name, Cur_User_Name, Cur_Dir_Name);
             } //[Linux@yhl /etc]
@@ -197,3 +197,4 @@ int main()
 
     return 0;
 }
+        

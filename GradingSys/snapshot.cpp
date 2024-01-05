@@ -59,7 +59,7 @@ bool fullBackup() {
 			return false;
 		}
 	}
-
+	
 	//把备份的空间初始化
 	char buffer[Disk_Size];
 	char temp[BLOCK_SIZE];
@@ -67,7 +67,7 @@ bool fullBackup() {
 	int c_Addr = 0;
 	int num = Disk_Size / BLOCK_SIZE;
 	for (int i = 0; i < num; i++) {
-
+		
 		memset(temp, '\0', sizeof(temp));
 		fseek(fr, c_Addr, SEEK_SET);
 		fread(temp, BLOCK_SIZE, 1, fr);
@@ -78,8 +78,8 @@ bool fullBackup() {
 		c_Addr += BLOCK_SIZE;
 		//printf("%d\n", c_Addr);
 	}
-
-
+	
+	
 	//char originbuf[Disk_Size];
 	//fseek(fr, 0, SEEK_SET);
 	//fread(originbuf, sizeof(originbuf), 1, fr);
@@ -87,7 +87,7 @@ bool fullBackup() {
 
 	//fseek(bfw, 0, SEEK_SET);
 	//fwrite(originbuf, sizeof(originbuf), 1, bfw);
-
+	
 	//清除位图标记
 	char tmp_inodeBitmap[INODE_NUM];
 	memset(tmp_inodeBitmap, 0, sizeof(tmp_inodeBitmap));
@@ -163,7 +163,7 @@ bool incrementalBackup() {
 	//更新：在OS中记录modified inode bitmap
 	fseek(fw, Modified_inodeBitmap_Start_Addr, SEEK_SET);
 	fwrite(modify_inodeBitmap, sizeof(modify_inodeBitmap), 1, fw);
-
+	
 
 	//去每一个被修改的inode里找被对应修改的直接块（区间改变）
 	int Cur_Addr = Backup_Block_Start_Addr;
@@ -237,7 +237,7 @@ bool recovery() {
 						return false;
 					}
 				}
-
+				
 				//从备份的文件中读
 				//memset(buffer, '\0', sizeof(buffer));
 				//fseek(bfr, 0, SEEK_SET);
